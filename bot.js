@@ -1,4 +1,6 @@
 const tmi = require('tmi.js');
+const tetrio = require('tetrio-node')
+
 
 // Define configuration options
 const opts = {
@@ -8,6 +10,11 @@ const opts = {
   },
   channels: ['waterdud_']
 };
+
+const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZTgxNWIzMzU2MjBlZTIzYWIxMjQ4NzMiLCJjeWNsZSI6MSwiaWF0IjoxNjI0MDkyMTkyfQ.KvqckWT02youh_LDIz9MIQPOxlj6pTbhHs0wwl43aLA"
+const tetrioApi = new tetrio.Api(userToken, {
+  notFoundAsError: true, // Throw an error on not found instead of returning nothing. (default: true)
+});
 
 // Create a client with our options
 const client = new tmi.client(opts);
@@ -20,27 +27,35 @@ client.on('connected', onConnectedHandler);
 client.connect();
 
 // Called every time a message comes in
-function onMessageHandler (target, context, msg, self) {
+function onMessageHandler (target, context, msg, self) 
+{
   if (self) { return; } // Ignore messages from the bot
 
-  // Remove whitespace from chat message
-  const commandName = msg.trim();
-
+  var command = msg.split(" ");
   // If the command is known, let's execute it
-  if (commandName === '!dice') {
-    const num = rollDice();
-    client.say(target, `You rolled a ${num}`);
-    console.log(`* Executed ${commandName} command`);
-  } else {
-    console.log(`* Unknown command ${commandName}`);
+
+  if(command[0] == "!blitz")
+  {
+    var player = command[1].toLowerCase().replace(/[^a-z_0-9]/g, "");
+    tetrioApi.getTopScores({ user: player, gameType: "blitz" }).then((records) => 
+    {
+      if(records[0] == null)
+      {
+        client.say(target, "0");
+      }
+      else
+      {
+        console.log(records[0].score);
+
+        client.say(target, records[0].score.toString());
+      }
+    });
+
   }
+
 }
 
-// Function called when the "dice" command is issued
-function rollDice () {
-  const sides = 6;
-  return Math.floor(Math.random() * sides) + 1;
-}
+  
 
 // Called every time the bot connects to Twitch chat
 function onConnectedHandler (addr, port) {
