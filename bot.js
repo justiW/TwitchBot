@@ -1,5 +1,4 @@
 const replace = require ("file-firstline-replace")
-const Discord = require("discord.js");
 const tmi = require('tmi.js');
 const fs = require ('fs');
 const tmp = require('tmp');
@@ -7,9 +6,7 @@ require('dotenv').config()
 const alasql = require('alasql');
 
 
-const { TWITCH_TOKEN, DISCORD_TOKEN } = process.env;
-
-const dclient = new Discord.Client();
+const TWITCH_TOKEN = oauth:b3vgookpppxevqnpv7n2ozvhaf3pmt;
 
 const user1 = "eggfriedrenge";
 const user2 = "nysdey";
@@ -32,11 +29,6 @@ tclient.on('message', onMessageHandler);
 
 // Connect to Twitch:
 tclient.connect();
-
-//discord connecting
-dclient.on("ready", () => {
-  console.log("I am ready!");
-});
 
 //create inital table
 alasql("CREATE TABLE twitch (id STRING, guess INT, point INT)");
