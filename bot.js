@@ -161,8 +161,6 @@ function submit(actualTR)
                       ELSE point
                     END);`
 */
-  guests();
-
 }
 
 
