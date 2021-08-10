@@ -5,17 +5,14 @@ const tmp = require('tmp');
 require('dotenv').config()
 const alasql = require('alasql');
 
-
-const TWITCH_TOKEN = oauth:b3vgookpppxevqnpv7n2ozvhaf3pmt;
-
 const user1 = "eggfriedrenge";
 const user2 = "nysdey";
 
-// Define configuration options for twtich
+// Define configuration options for twitch
 const opts = {
   identity: {
     username: 'waterdud_bot',
-    password: TWITCH_TOKEN,
+    password: 'b3vgookpppxevqnpv7n2ozvhaf3pmt',
   },
   channels: ['waterdud_']
 };
