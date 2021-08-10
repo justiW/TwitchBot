@@ -1,0 +1,36 @@
+{
+  "name": "guess-the-rank",
+  "version": "1.0.0",
+  "description": "Guess the rank in tetrio",
+  "main": "bot.js",
+  "scripts": {
+    "test": "node bot.js",
+    "start": "node bot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Haogy101/guess-the-rank.git"
+  },
+  "keywords": [
+    "bot",
+    "tetrio",
+    "tetris",
+    "guess",
+    "game",
+    "fun",
+    "replay"
+  ],
+  "author": "Haogy, waterdud_, FiresBZ",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Haogy101/guess-the-rank/issues"
+  },
+  "homepage": "https://github.com/Haogy101/guess-the-rank#readme",
+  "dependencies": {
+    "alasql": "^1.7.3",
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0",
+    "file-firstline-replace": "0.0.3",
+    "tmi.js": "^1.8.3"
+  }
+}

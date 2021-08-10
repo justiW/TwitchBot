@@ -1,63 +1,326 @@
+const replace = require ("file-firstline-replace")
+const Discord = require("discord.js");
 const tmi = require('tmi.js');
-const tetrio = require('tetrio-node')
+const fs = require ('fs');
+const tmp = require('tmp');
+require('dotenv').config()
+const alasql = require('alasql');
 
 
-// Define configuration options
+const { TWITCH_TOKEN, DISCORD_TOKEN } = process.env;
+
+const dclient = new Discord.Client();
+
+const user1 = "eggfriedrenge";
+const user2 = "nysdey";
+
+// Define configuration options for twtich
 const opts = {
   identity: {
-    username: 'duddy_bot',
-    password: 'oauth:tdvsc8j15xnizrlly1t4pvgsiud9x5'
+    username: 'waterdud_bot',
+    password: TWITCH_TOKEN,
   },
   channels: ['waterdud_']
 };
 
-const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZTgxNWIzMzU2MjBlZTIzYWIxMjQ4NzMiLCJjeWNsZSI6MSwiaWF0IjoxNjI0MDkyMTkyfQ.KvqckWT02youh_LDIz9MIQPOxlj6pTbhHs0wwl43aLA"
-const tetrioApi = new tetrio.Api(userToken, {
-  notFoundAsError: true, // Throw an error on not found instead of returning nothing. (default: true)
-});
+//twitch client
+const tclient = new tmi.client(opts);
 
-// Create a client with our options
-const client = new tmi.client(opts);
+// Register our event handlers on twtich
+tclient.on('message', onMessageHandler);
 
-// Register our event handlers (defined below)
-client.on('message', onMessageHandler);
-client.on('connected', onConnectedHandler);
 
 // Connect to Twitch:
-client.connect();
+tclient.connect();
 
-// Called every time a message comes in
-function onMessageHandler (target, context, msg, self) 
+//discord connecting
+dclient.on("ready", () => {
+  console.log("I am ready!");
+});
+
+//create inital table
+alasql("CREATE TABLE twitch (id STRING, guess INT, point INT)");
+
+//window
+let guessWindow = false;
+
+// Called every time a message comes in on twitch
+function onMessageHandler (target, context, msg, self)  
 {
-  if (self) { return; } // Ignore messages from the bot
+  //ignore bot msgs
+  if (self) 
+  { 
+    return; 
+  }
 
   var command = msg.split(" ");
-  // If the command is known, let's execute it
 
-  if(command[0] == "!blitz")
+  if(command[0] == "!p")
   {
-    var player = command[1].toLowerCase().replace(/[^a-z_0-9]/g, "");
-    tetrioApi.getTopScores({ user: player, gameType: "blitz" }).then((records) => 
-    {
-      if(records[0] == null)
-      {
-        client.say(target, "0");
-      }
-      else
-      {
-        console.log(records[0].score);
-
-        client.say(target, records[0].score.toString());
-      }
-    });
-
+    tclient.say(target, "sending song to discord");
+    sendDiscord("-p " + command[1]);
   }
+
+  else if(command[0] == "!send")
+  {
+    tclient.say(target, "sending message to discord");
+
+    var totalString = "";
+    for(let i = 1; i < command.length; i++)
+    {
+      totalString = totalString + " " + command[i];
+    }
+    sendDiscord(totalString);
+  }
+
+  else if(command[0] == "!add")
+  {
+    tclient.say(target, "adding to list");
+
+    var user = command[1] + "\n";
+    fs.appendFile('playerList.txt', user, function (err)
+    {
+      if(err) return console.log("rip");
+    });
+  }
+
+  
+  else if(command[0] == "!list")
+  {
+    fs.readFile('playerList.txt', (err, data) => {
+      if(err) return console.log("rip");
+      tclient.say(target, data);
+    });
+  }
+
+  else if(command[0] == "!guess")
+  {
+    if(command.length == 1)
+    {
+      tclient.say(target, "please include a value: !guess [#TR]");
+    }
+    else if(command[1].match(/^[0-9]+$/) != null)
+    {
+      var userGuess = parseInt(command[1], 10);
+      guess(context, userGuess);
+    }
+    else
+    {
+      tclient.say(target, "please use right command: !guess [#TR]");
+    }
+  }
+
+  else if(command[0] == "!point")
+  {
+    const reply = context["display-name"] + " has " + score(context) + " points";
+    tclient.say(target, reply);
+  }
+
+  else if(command[0] == "!submit" && context["display-name"] == "waterdud_")
+  {
+    if(command.length == 1)
+    {
+      tclient.say(target, "please include a value: !guess [#TR]");
+    }
+    if(command[1].match(/^[0-9]+$/) != null)
+    {
+      var actualTR = parseInt(command[1], 10);
+      submit(actualTR);
+    }
+    else
+    {
+      tclient.say(target, "please use right command: !submit [#TR]");
+    }
+  }
+
+  else if(command[0] == "!leaderboard")
+  {
+    tclient.say(target,leaderboard());
+  }
+  
+}
+
+
+//joining and leaving voice call
+var connected = false;
+
+dclient.on("message", (message) => {
+
+  if (message.content.startsWith("-summon") && connected == false)
+  {
+  	join(message);
+    connected = true;
+  }
+
+  if (message.content.startsWith("-leave") && connected == true)
+  {
+    message.guild.me.voice.channel.leave();
+    connected = false;
+  }
+
+  if (message.content.startsWith("-p"))
+  {
+    var music = message.toString().split(" ");
+    const toRythm = dclient.channels.cache.get('801689534035263509');
+    toRythm.send("!p " + music[1]);
+  }
+});
+
+dclient.login(DISCORD_TOKEN);
+
+
+//function to join voice call for discord bot
+async function join(message)
+{
+  if (message.member.voice.channel) 
+    {
+      const connection = await message.member.voice.channel.join();
+    } 
+    else 
+    {
+      message.reply('You need to join a voice channel first!');
+    }
+}
+
+
+//discord webhook
+async function sendDiscord (request)
+{
+  const channel = dclient.channels.cache.get('801689534035263509');
+
+  const webhooks = await channel.fetchWebhooks();
+  const webhook = webhooks.first();
+
+  await webhook.send(request);
+  
+}
+
+//
+function guess(user, TR)
+{
+  let check = "SELECT COUNT(*) from twitch WHERE id = '" + user["display-name"] + "';";
+  check = alasql(check);
+  let command = "";
+
+  if(JSON.stringify(check).replace(/\D/g, "") == 0)
+  {
+    command = "INSERT INTO twitch VALUES ( '" + user["display-name"] + "', " + TR +" , 0)";
+  }
+  else
+  {
+    command = "UPDATE twitch SET guess = " + TR + " WHERE id = '" + user["display-name"] + "';";
+  }
+
+
+  alasql(command);
 
 }
 
-  
+function score(user)
+{
+  const command = "SELECT point FROM twitch WHERE id = '" + user["display-name"] + "'";
 
-// Called every time the bot connects to Twitch chat
-function onConnectedHandler (addr, port) {
-  console.log(`* Connected to ${addr}:${port}`);
+  const ans = alasql(command);
+
+  return JSON.stringify(ans).replace(/\D/g, "");
+}
+
+
+function submit(actualTR)
+{
+
+  const lowere = actualTR - 5;
+  const uppere = actualTR + 5;
+
+  const upper1 = actualTR + 1000;
+  const lower1 = actualTR - 1000;
+
+  const upper2 = actualTR + 100;
+  const lower2 = actualTR - 100;
+
+  const caseEqual = "WHEN guess >= " + lowere + " AND guess <= " + uppere + " THEN point + 5 ";
+  const case1 = "WHEN guess >= " + lower2 + " AND guess <= " + upper2 + " THEN point + 2 ";
+  const case2 = "WHEN guess >= " + lower1 + " AND guess <= " + upper1 + " THEN point + 1 "
+
+  const command = "UPDATE twitch SET point = (CASE " + caseEqual + case1 + case2 + "ELSE point END);"; 
+
+  alasql(command);
+
+/*
+  `update twitch SET point = (CASE  
+                      WHEN guess equals1 AND guess <= equals2
+                        THEN point + 5
+                      WHEN guess >= lower2 AND guess <= upper2
+                        THEN point + 2
+                      WHEN guess >= lower1 AND guess <= upper1
+                        THEN point + 1
+                      ELSE point
+                    END);`
+*/
+  guests();
+
+}
+
+
+function leaderboard()
+{
+
+  const command = "SELECT id, point FROM twitch ORDER BY point DESC LIMIT 3";
+
+  const execute = alasql(command);
+  console.log(execute);
+
+  const leaderboardSting = `Leaderboard:\n1st: ${execute[0].id} (${execute[0].point})\n2nd: ${execute[1].id} (${execute[1].point})\n3rd: ${execute[2].id} (${execute[2].point})`;
+
+  // return JSON.stringify(execute).replace(/[{}]/gi, ' ')
+  return leaderboardSting;
+}
+
+
+
+function guests()
+{
+  let waterdud= "out/waterdud.txt";
+  const command = "SELECT point FROM twitch WHERE id = 'waterdud_'";
+
+  let update = JSON.stringify(alasql(command)).replace(/\D/g, "");
+  console.log("waterdud new point is" + update);
+  writepoint(waterdud,update);
+
+
+  let guest1= "out/guest1.txt";
+  const command1 = "SELECT point FROM twitch WHERE id = '" + user1 +"'";
+
+  let update1 = JSON.stringify(alasql(command1)).replace(/\D/g, "");
+  writepoint(guest1,update1);
+
+
+  let guest2= "out/guest2.txt";
+
+  const command2 = "SELECT point FROM twitch WHERE id = '" + user2 + "'";
+
+  let update2 = JSON.stringify(alasql(command2)).replace(/\D/g, "");
+  writepoint(guest2,update2);
+  
+}
+
+
+function writepoint(file,newPoint)
+{
+  fs.open(file, 'w', function(err, fd) 
+    {
+
+      if(err) {
+          console.log('Cant open file');
+      }else {
+          fs.write(fd, newPoint, 0, "utf-8", 
+                  function(err,writtenbytes) {
+              if(err) {
+                  console.log('Cant write to file');
+              }else {
+                  console.log(writtenbytes + ' characters added to file');
+              }
+          })
+      }
+    })
 }
