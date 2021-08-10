@@ -54,38 +54,8 @@ function onMessageHandler (target, context, msg, self)
   }
 
   var command = msg.split(" ");
-
-  if(command[0] == "!p")
-  {
-    tclient.say(target, "sending song to discord");
-    sendDiscord("-p " + command[1]);
-  }
-
-  else if(command[0] == "!send")
-  {
-    tclient.say(target, "sending message to discord");
-
-    var totalString = "";
-    for(let i = 1; i < command.length; i++)
-    {
-      totalString = totalString + " " + command[i];
-    }
-    sendDiscord(totalString);
-  }
-
-  else if(command[0] == "!add")
-  {
-    tclient.say(target, "adding to list");
-
-    var user = command[1] + "\n";
-    fs.appendFile('playerList.txt', user, function (err)
-    {
-      if(err) return console.log("rip");
-    });
-  }
-
   
-  else if(command[0] == "!list")
+  if(command[0] == "!list")
   {
     fs.readFile('playerList.txt', (err, data) => {
       if(err) return console.log("rip");
@@ -137,61 +107,6 @@ function onMessageHandler (target, context, msg, self)
   {
     tclient.say(target,leaderboard());
   }
-  
-}
-
-
-//joining and leaving voice call
-var connected = false;
-
-dclient.on("message", (message) => {
-
-  if (message.content.startsWith("-summon") && connected == false)
-  {
-  	join(message);
-    connected = true;
-  }
-
-  if (message.content.startsWith("-leave") && connected == true)
-  {
-    message.guild.me.voice.channel.leave();
-    connected = false;
-  }
-
-  if (message.content.startsWith("-p"))
-  {
-    var music = message.toString().split(" ");
-    const toRythm = dclient.channels.cache.get('801689534035263509');
-    toRythm.send("!p " + music[1]);
-  }
-});
-
-dclient.login(DISCORD_TOKEN);
-
-
-//function to join voice call for discord bot
-async function join(message)
-{
-  if (message.member.voice.channel) 
-    {
-      const connection = await message.member.voice.channel.join();
-    } 
-    else 
-    {
-      message.reply('You need to join a voice channel first!');
-    }
-}
-
-
-//discord webhook
-async function sendDiscord (request)
-{
-  const channel = dclient.channels.cache.get('801689534035263509');
-
-  const webhooks = await channel.fetchWebhooks();
-  const webhook = webhooks.first();
-
-  await webhook.send(request);
   
 }
 
@@ -274,53 +189,4 @@ function leaderboard()
 
   // return JSON.stringify(execute).replace(/[{}]/gi, ' ')
   return leaderboardSting;
-}
-
-
-
-function guests()
-{
-  let waterdud= "out/waterdud.txt";
-  const command = "SELECT point FROM twitch WHERE id = 'waterdud_'";
-
-  let update = JSON.stringify(alasql(command)).replace(/\D/g, "");
-  console.log("waterdud new point is" + update);
-  writepoint(waterdud,update);
-
-
-  let guest1= "out/guest1.txt";
-  const command1 = "SELECT point FROM twitch WHERE id = '" + user1 +"'";
-
-  let update1 = JSON.stringify(alasql(command1)).replace(/\D/g, "");
-  writepoint(guest1,update1);
-
-
-  let guest2= "out/guest2.txt";
-
-  const command2 = "SELECT point FROM twitch WHERE id = '" + user2 + "'";
-
-  let update2 = JSON.stringify(alasql(command2)).replace(/\D/g, "");
-  writepoint(guest2,update2);
-  
-}
-
-
-function writepoint(file,newPoint)
-{
-  fs.open(file, 'w', function(err, fd) 
-    {
-
-      if(err) {
-          console.log('Cant open file');
-      }else {
-          fs.write(fd, newPoint, 0, "utf-8", 
-                  function(err,writtenbytes) {
-              if(err) {
-                  console.log('Cant write to file');
-              }else {
-                  console.log(writtenbytes + ' characters added to file');
-              }
-          })
-      }
-    })
 }
