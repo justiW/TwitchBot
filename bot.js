@@ -61,7 +61,19 @@ function onMessageHandler (target, context, msg, self)
     else if(command[1].match(/^[0-9]+$/) != null)
     {
       var userGuess = parseInt(command[1], 10);
-      guess(context, userGuess);
+
+      let dup = "SELECT COUNT(1) FROM twitch WHERE guess = " + userGuess + ";"
+
+      let x = alasql(dup)
+
+      if(JSON.stringify(x)[13] == "1")
+      {
+        tclient.say(target, "This guess is already taken :3");
+      }
+      else
+      {
+        guess(context, userGuess);
+      }
     }
     else
     {
@@ -69,7 +81,7 @@ function onMessageHandler (target, context, msg, self)
     }
   }
 
-  else if(command[0] == "!point")
+  else if(command[0] == "!point" || command[0] == "!points")
   {
     const reply = context["display-name"] + " has " + score(context) + " points";
     tclient.say(target, reply);
@@ -102,6 +114,7 @@ function onMessageHandler (target, context, msg, self)
 //
 function guess(user, TR)
 {
+
   let check = "SELECT COUNT(*) from twitch WHERE id = '" + user["display-name"] + "';";
   check = alasql(check);
   let command = "";
