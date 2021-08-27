@@ -5,8 +5,8 @@ const tmp = require('tmp');
 require('dotenv').config()
 const alasql = require('alasql');
 
-const user1 = "eggfriedrenge";
-const user2 = "nysdey";
+const user1 = "FiresBZ";
+const user2 = "Haogy";
 
 // Define configuration options for twitch
 const opts = {
