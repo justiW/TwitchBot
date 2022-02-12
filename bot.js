@@ -12,7 +12,7 @@ const user2 = "Haogy";
 const opts = {
   identity: {
     username: 'waterdud_bot',
-    password: 'b3vgookpppxevqnpv7n2ozvhaf3pmt',
+    password: '',
   },
   channels: ['waterdud_']
 };
